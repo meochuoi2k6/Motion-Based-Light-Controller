@@ -71,56 +71,71 @@ void blinkIndicatorLED(int times) {
 }
 
 void checkButton() {
+    static unsigned long lastDebounceTime = 0;
     static unsigned long buttonPressStart = 0;
+    const unsigned long debounceDelay = 50; // 50ms chống dội
+
+    int reading = digitalRead(BUTTON_PIN);
     unsigned long currentTime = millis();
-    buttonState = digitalRead(BUTTON_PIN);
 
-    if (buttonState == LOW) {
-        if (buttonPressStart == 0)
-            buttonPressStart = currentTime;
+    // Chống dội nút
+    if (reading != lastButtonState) {
+        lastDebounceTime = currentTime;
+    }
 
-        if ((currentTime - buttonPressStart) > 2000) {
-            if (!alwaysOn && !alwaysOff) {
-                alwaysOn = true;
-                alwaysOff = false;
-                Serial.println("Che do: Luon sang");
-                digitalWrite(INDICATOR_LED, HIGH);
-            } else if (alwaysOn) {
-                alwaysOn = false;
-                alwaysOff = true;
-                Serial.println("Che do: Luon tat");
-                digitalWrite(INDICATOR_LED, LOW);
-            }
-            saveSettings();
-            buttonPressStart = 0;
-            return;
-        }
-    } else {
-        if (buttonPressStart > 0 && (currentTime - buttonPressStart) <= 2000) {
-            buttonPressStart = 0;
+    if ((currentTime - lastDebounceTime) > debounceDelay) {
+        if (reading != buttonState) {
+            buttonState = reading;
 
-            if (alwaysOn || alwaysOff) {
-                alwaysOn = false;
-                alwaysOff = false;
-                Serial.println("Che do: Binh thuong");
-                blinkIndicatorLED(currentOption + 1);
+            if (buttonState == LOW) {
+                buttonPressStart = currentTime; // thoi gian bat dau nhan 
             } else {
-                currentOption = (currentOption + 1) % 3;
-                lightDuration = timeOptions[currentOption];
-                Serial.print("Thoi gian sang moi: ");
-                Serial.print(lightDuration / 1000);
-                Serial.println("s");
-                blinkIndicatorLED(currentOption + 1);
+                // Thả nút ra
+                unsigned long pressDuration = currentTime - buttonPressStart;
+
+                if (pressDuration > 2000) {
+                    //Long hold - luon bat - luon tat
+                    if (!alwaysOn && !alwaysOff) {
+                        alwaysOn = true;
+                        alwaysOff = false;
+                        Serial.println("Che do: Luon sang");
+                        digitalWrite(INDICATOR_LED, HIGH);
+                    } else if (alwaysOn) {
+                        alwaysOn = false;
+                        alwaysOff = true;
+                        Serial.println("Che do: Luon tat");
+                        digitalWrite(INDICATOR_LED, LOW);
+                    } else {
+                        alwaysOn = false;
+                        alwaysOff = false;
+                        Serial.println("Che do: Binh thuong");
+                        blinkIndicatorLED(currentOption + 1);
+                    }
+                    saveSettings();
+                } else {
+                    // short press - time adjustment
+                    if (!alwaysOn && !alwaysOff) {
+                        currentOption = (currentOption + 1) % 3;
+                        lightDuration = timeOptions[currentOption];
+                        Serial.print("Thoi gian sang moi: ");
+                        Serial.print(lightDuration / 1000);
+                        Serial.println("s");
+                        blinkIndicatorLED(currentOption + 1);
+                        saveSettings();
+                    }
+                }
             }
-            saveSettings();
         }
     }
+
+    lastButtonState = reading;
 }
+
 
 void loop() {
     int PIR = digitalRead(PIR_PIN);
     int lightValue = analogRead(LS_PIN);
-    int LS = (lightValue < 500) ? HIGH : LOW;
+    int LS = (lightValue < 10) ? HIGH : LOW;
 
     checkButton();
 
