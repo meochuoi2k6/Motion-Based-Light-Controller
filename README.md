@@ -44,3 +44,13 @@ It turns on a light (via relay) when motion is detected in dark conditions, and 
 ## 💻 Code
 The main code is written in **Arduino C++** and compatible with **Arduino Uno / Nano / Mega**.
 
+---
+
+## 🧑‍💻 Author
+Pham Nam Phuc - SEEE - HUST
+Hoang Vi Ky - SEEE - HUST
+
+---
+
+## 📜 Warning
+This project had already completed a year ago. This is an reuploaded version of our project.
